@@ -1,0 +1,10 @@
+#! /usr/bin/env sh
+
+exec foot \
+     --app-id foot-skim \
+     --title dmenu \
+     j4-dmenu-desktop \
+     --dmenu 'sk --color light --layout reverse' \
+     --no-generic \
+     --term foot \
+     --wrapper 'swaymsg exec'

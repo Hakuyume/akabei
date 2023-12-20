@@ -1,0 +1,6 @@
+partial modifier_keys
+xkb_symbols "basic" {
+    include "us"
+    replace key <LALT> { [ Muhenkan ] };
+    replace key <RALT> { [ Henkan_Mode ] };
+};
