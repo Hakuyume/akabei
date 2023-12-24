@@ -84,7 +84,7 @@
  
      colors {
          statusline #ffffff
-@@ -214,4 +199,15 @@
+@@ -214,4 +199,16 @@
      }
  }
  
@@ -92,6 +92,7 @@
 +bindsym $mod+Shift+comma move workspace to output left
 +bindsym $mod+Shift+period move workspace to output right
 +exec fcitx5
++exec xss-lock -- $HOME/.config/sway/lock
 +focus_follows_mouse no
 +font pango:Noto Sans Mono, Font Awesome 6 Free 12
 +for_window [app_id="foot"] opacity 0.9
