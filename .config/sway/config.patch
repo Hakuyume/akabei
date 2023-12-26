@@ -88,7 +88,7 @@
      }
  }
  
-+bindsym $mod+l exec $HOME/.config/sway/lock
++bindsym $mod+l exec loginctl lock-session
 +bindsym $mod+Shift+comma move workspace to output left
 +bindsym $mod+Shift+period move workspace to output right
 +bindsym XF86AudioMute exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
