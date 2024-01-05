@@ -1,0 +1,17 @@
+--- /etc/skel/.bashrc	2023-11-23 00:26:11.000000000 +0900
++++ .bashrc	2024-01-05 17:33:30.964875080 +0900
+@@ -8,3 +8,14 @@
+ alias ls='ls --color=auto'
+ alias grep='grep --color=auto'
+ PS1='[\u@\h \W]\$ '
++
++for P in ${HOME}/.cargo/bin ${HOME}/.local/bin
++do
++    [[ ":$PATH:" = *":$P:"* ]] || export PATH="$P:$PATH"
++done
++unset P
++
++export MOZ_DBUS_REMOTE=1
++export SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/ssh-agent.socket
++
++eval "$(starship init bash)"
