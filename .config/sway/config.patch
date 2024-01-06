@@ -92,7 +92,7 @@
  
      colors {
          statusline #ffffff
-@@ -214,4 +202,20 @@
+@@ -214,4 +202,19 @@
      }
  }
  
@@ -110,6 +110,5 @@
 +for_window [app_id="foot"] opacity 0.9
 +for_window [app_id="foot-skim"] floating enabled
 +for_window [app_id="foot-skim"] opacity 0.9
-+for_window [app_id="pinentry-qt"] floating enabled
 +
  include /etc/sway/config.d/*
