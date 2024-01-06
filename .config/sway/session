@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+set -e
+
+systemctl --user stop sway-session.target
+trap 'systemctl --user stop sway-session.target' EXIT
+systemctl --user start sway-session.target
+swaymsg -t subscribe '["shutdown"]'
