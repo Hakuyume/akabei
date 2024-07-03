@@ -3,7 +3,7 @@ PartOf=sway-session.target
 After=sway-session.target
 
 [Service]
-ExecStart=/usr/bin/swayidle -w before-sleep 'loginctl lock-session' lock 'swaylock -f'
+ExecStart=/usr/bin/swayidle lock 'swaylock -f'
 
 [Install]
 WantedBy=sway-session.target
