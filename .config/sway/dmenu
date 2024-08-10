@@ -5,6 +5,6 @@ exec foot \
      --title dmenu \
      j4-dmenu-desktop \
      --dmenu 'sk --color light --layout reverse' \
+     --i3-ipc \
      --no-generic \
-     --term foot \
-     --wrapper 'swaymsg exec'
+     --term foot
