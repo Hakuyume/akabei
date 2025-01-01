@@ -214,3 +214,4 @@ focus_follows_mouse no
 font pango:Noto Sans Mono, Font Awesome 6 Free 12
 
 include /etc/sway/config.d/*
+include $HOME/.config/sway/config.d/*
