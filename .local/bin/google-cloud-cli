@@ -1,0 +1,9 @@
+#! /usr/bin/env sh
+set -eu
+
+systemctl --user start google-cloud-cli.service
+if tty --quiet; then
+    exec podman exec --interactive --tty systemd-google-cloud-cli $(basename $0) "$@"
+else
+    exec podman exec --interactive systemd-google-cloud-cli $(basename $0) "$@"
+fi
