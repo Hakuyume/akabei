@@ -25,7 +25,7 @@ step_width = 0
 
 [[block]]
 block = "net"
-format = "$icon {$ssid $frequency|}"
+format = "$icon{$frequency $ssid|}"
 interval = 5
 
 [[block]]
