@@ -6,4 +6,4 @@ export XMODIFIERS=@im=fcitx
 
 export QT_QPA_PLATFORM=wayland
 
-exec sway
+exec /usr/bin/sway
