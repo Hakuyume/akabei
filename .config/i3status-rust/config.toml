@@ -17,13 +17,15 @@ interval = 5
 [[block]]
 block = "backlight"
 
+if_command = "find /sys/class/backlight -mindepth 1 | read"
+
 [[block]]
 block = "sound"
 step_width = 0
 
 [[block]]
 block = "net"
-format = "$icon $ssid"
+format = "$icon {$ssid $frequency|}"
 interval = 5
 
 [[block]]
@@ -33,6 +35,8 @@ full_format = "$icon $percentage"
 empty_format = "$icon $percentage"
 not_charging_format = "$icon $percentage"
 interval = 5
+
+if_command = "find /sys/class/power_supply -mindepth 1 '!' -exec test -f {}/scope ';' -print | read "
 
 [[block]]
 block = "time"
