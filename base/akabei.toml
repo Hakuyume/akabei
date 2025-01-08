@@ -12,4 +12,4 @@ name = "base"
 [[files]]
   source = "user-dirs.dirs"
   target = ".config/user-dirs.dirs"
-  pre_install = "mkdir -p ${HOME}/downloads"
+  pre_install = "mkdir -p downloads"
