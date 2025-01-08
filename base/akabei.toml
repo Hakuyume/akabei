@@ -1,0 +1,11 @@
+name = "base"
+
+[[files]]
+  source = "bashrc.bash"
+  target = ".bashrc"
+[[files]]
+  source = "50-ssh-agent.bash"
+  target = ".bashrc.d/50-ssh-agent.bash"
+[[files]]
+  source = "50-starship.bash"
+  target = ".bashrc.d/50-starship.bash"
