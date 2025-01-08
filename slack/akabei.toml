@@ -1,0 +1,5 @@
+name = "slack"
+
+[[files]]
+  source = "slack.desktop"
+  target = ".local/share/applications/slack.desktop"
