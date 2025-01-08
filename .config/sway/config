@@ -209,9 +209,11 @@ bar {
 bindsym $mod+l exec loginctl lock-session
 bindsym $mod+Shift+comma move workspace to output left
 bindsym $mod+Shift+period move workspace to output right
-exec $HOME/.config/sway/session
 focus_follows_mouse no
 font pango:Noto Sans Mono, Font Awesome 6 Free 12
 
+exec_always systemctl --user start sway-session.target
+exec sh -c 'trap "systemctl --user stop sway-session.target" EXIT && swaymsg --type=subscribe [\"shutdown\"]'
+
 include /etc/sway/config.d/*
-include $HOME/.config/sway/config.d/*
+include config.d/*

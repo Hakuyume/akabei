@@ -1,5 +1,5 @@
 [Unit]
-PartOf=graphical-session.target
+BindsTo=graphical-session.target
 After=graphical-session.target
 
 [Service]
