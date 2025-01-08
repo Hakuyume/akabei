@@ -4,6 +4,7 @@ After=sway-session.target
 
 [Service]
 ExecStart=/usr/bin/swayidle lock 'swaylock -f'
+Restart=on-failure
 
 [Install]
 WantedBy=sway-session.target
