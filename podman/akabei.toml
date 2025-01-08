@@ -1,0 +1,11 @@
+name = "podman"
+
+[[files]]
+  source = "50-podman.bash"
+  target = ".bashrc.d/50-podman.bash"
+[[files]]
+  source = "containers.conf"
+  target = ".config/containers/containers.conf"
+[[files]]
+  source = "storage.conf"
+  target = ".config/containers/storage.conf"
