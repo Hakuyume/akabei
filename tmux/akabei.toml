@@ -1,0 +1,5 @@
+name = "tmux"
+
+[[files]]
+  source = "tmux.conf"
+  target = ".config/tmux/tmux.conf"
