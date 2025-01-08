@@ -1,0 +1,26 @@
+[[sway.files]]
+  source = "50-sway.bash"
+  target = ".bashrc/50-sway.bash"
+[[sway.files]]
+  source = "foot.ini"
+  target = ".config/foot/foot.ini"
+[[sway.files]]
+  source = "fuzzel.ini"
+  target = ".config/fuzzel/fuzzel"
+[[sway.files]]
+  source = "i3status-rust.toml"
+  target = ".config/i3status-rust/config.toml"
+[[sway.files]]
+  source = "sway.conf"
+  target = ".config/sway/config"
+[[sway.files]]
+  source = "swayidle.service"
+  target = ".config/systemd/user/swayidle.service"
+  post_install = "systemctl --user daemon-reload && systemctl --user enable swayidle.service"
+  pre_remove = "systemctl --user disable swayidle.service"
+[[sway.files]]
+  source = "sway-session.target"
+  target = ".config/systemd/user/sway-session.target"
+[[sway.files]]
+  source = "us_henkan"
+  target = ".xkb/symbols/us_henkan"
