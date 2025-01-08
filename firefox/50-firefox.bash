@@ -1,0 +1,1 @@
+export MOZ_DBUS_REMOTE=1
