@@ -19,7 +19,7 @@ struct Args {
     #[clap(long, num_args = 1..)]
     remove: Vec<String>,
     #[clap(long)]
-    execute: bool,
+    apply: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -59,10 +59,10 @@ fn main() -> anyhow::Result<()> {
     let diffs = plan(&before, &after);
 
     for (path, (before, after)) in diffs {
-        sync(path, before, after, args.execute)?;
+        sync(path, before, after, args.apply)?;
     }
 
-    if args.execute {
+    if args.apply {
         if let Some(parent) = state.parent() {
             fs::create_dir_all(parent)?
         }
@@ -178,7 +178,7 @@ fn sync<T, U>(
     path: &Path,
     before: Option<&manifest::File<T>>,
     after: Option<&manifest::File<U>>,
-    execute: bool,
+    apply: bool,
 ) -> anyhow::Result<()>
 where
     U: fmt::Debug + AsRef<Path>,
@@ -194,21 +194,21 @@ where
     if let Some(before) = before {
         let _span = tracing::info_span!("remove").entered();
         if let Some(command) = &before.pre_remove {
-            exec(command, execute)?;
+            exec(command, apply)?;
         }
-        remove(&path, execute)?;
+        remove(&path, apply)?;
         if let Some(command) = &before.post_remove {
-            exec(command, execute)?;
+            exec(command, apply)?;
         }
     }
     if let Some(after) = after {
         let _span = tracing::info_span!("install").entered();
         if let Some(command) = &after.pre_install {
-            exec(command, execute)?;
+            exec(command, apply)?;
         }
-        install(&after.extra, path, after.mode, execute)?;
+        install(&after.extra, path, after.mode, apply)?;
         if let Some(command) = &after.post_install {
-            exec(command, execute)?;
+            exec(command, apply)?;
         }
     }
 
@@ -216,8 +216,8 @@ where
 }
 
 #[tracing::instrument(err, ret)]
-fn exec(command: &str, execute: bool) -> anyhow::Result<()> {
-    if execute {
+fn exec(command: &str, apply: bool) -> anyhow::Result<()> {
+    if apply {
         let status = Command::new("sh")
             .arg("-euxc")
             .arg(command)
@@ -229,23 +229,23 @@ fn exec(command: &str, execute: bool) -> anyhow::Result<()> {
 }
 
 #[tracing::instrument(err, ret, skip(path))]
-fn remove<P>(path: P, execute: bool) -> anyhow::Result<()>
+fn remove<P>(path: P, apply: bool) -> anyhow::Result<()>
 where
     P: AsRef<Path>,
 {
-    if execute {
+    if apply {
         fs::remove_file(path)?;
     }
     Ok(())
 }
 
 #[tracing::instrument(err, ret, skip(target, mode))]
-fn install<P, Q>(source: P, target: Q, mode: u32, execute: bool) -> anyhow::Result<()>
+fn install<P, Q>(source: P, target: Q, mode: u32, apply: bool) -> anyhow::Result<()>
 where
     P: fmt::Debug + AsRef<Path>,
     Q: AsRef<Path>,
 {
-    if execute {
+    if apply {
         if let Some(parent) = target.as_ref().parent() {
             fs::create_dir_all(parent)?;
         }
