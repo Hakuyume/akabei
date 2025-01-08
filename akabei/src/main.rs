@@ -37,30 +37,41 @@ fn main() -> anyhow::Result<()> {
         manifest::Manifest::default()
     };
 
-    let mut after = manifest::Manifest::default();
-    after.packages = before.packages;
-    for package in args.install {
-        after.packages.insert(package);
-    }
-    for package in args.remove {
-        after.packages.remove(&package);
-    }
-    let mut packages = load_packages(env::current_dir()?)?;
-    for package_name in &after.packages {
-        let manifest = packages
-            .iter_mut()
-            .find(|manifest| manifest.packages.contains(package_name))
-            .ok_or_else(|| anyhow::format_err!("missing package `{package_name}`"))?;
-        after.files.append(&mut manifest.files);
-    }
+    let after = {
+        let mut package_names = before.packages;
+        for package_name in args.install {
+            package_names.insert(package_name);
+        }
+        for package_name in args.remove {
+            package_names.remove(&package_name);
+        }
 
-    let mut files = BTreeMap::<_, (_, _)>::new();
-    for (path, file) in before.files {
-        files.entry(path).or_default().0 = Some(file);
-    }
-    for (path, file) in &after.files {
-        files.entry(path.clone()).or_default().1 = Some(file);
-    }
+        let mut files = BTreeMap::new();
+        let mut packages = load_packages(env::current_dir()?)?;
+        for package_name in &package_names {
+            let manifest = packages
+                .iter_mut()
+                .find(|manifest| manifest.packages.contains(package_name))
+                .ok_or_else(|| anyhow::format_err!("missing package `{package_name}`"))?;
+            files.append(&mut manifest.files);
+        }
+
+        manifest::Manifest {
+            packages: package_names,
+            files,
+        }
+    };
+
+    let mut files = {
+        let mut files = BTreeMap::<_, (_, _)>::new();
+        for (path, file) in before.files {
+            files.entry(path).or_default().0 = Some(file);
+        }
+        for (path, file) in &after.files {
+            files.entry(path.clone()).or_default().1 = Some(file);
+        }
+        files
+    };
 
     for (path, (before, _)) in &mut files {
         check(path, before)?;
