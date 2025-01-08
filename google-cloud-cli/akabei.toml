@@ -1,6 +1,9 @@
 name = "google-cloud-cli"
 
 [[files]]
+  source = "50-google-cloud-cli.bash"
+  target = ".bashrc.d/50-google-cloud-cli.bash"
+[[files]]
   source = "google-cloud-cli"
   target = ".local/bin/gcloud"
   mode = "100755"
@@ -17,3 +20,4 @@ name = "google-cloud-cli"
 [[files]]
   source = "google-cloud-cli.container"
   target = ".config/containers/systemd/google-cloud-cli.container"
+  post_install = "systemctl --user daemon-reload"
