@@ -38,15 +38,13 @@ fn main() -> anyhow::Result<()> {
     };
 
     let mut after = manifest::Manifest::default();
-
-    after.packages = before.packages.clone();
+    after.packages = before.packages;
     for package in args.install {
         after.packages.insert(package);
     }
     for package in args.remove {
         after.packages.remove(&package);
     }
-
     let mut packages = load_packages(env::current_dir()?)?;
     for package_name in &after.packages {
         let manifest = packages
@@ -56,10 +54,26 @@ fn main() -> anyhow::Result<()> {
         after.files.append(&mut manifest.files);
     }
 
-    let diffs = plan(&before, &after);
+    let mut files = BTreeMap::<_, (_, _)>::new();
+    for (path, file) in before.files {
+        files.entry(path).or_default().0 = Some(file);
+    }
+    for (path, file) in &after.files {
+        files.entry(path.clone()).or_default().1 = Some(file);
+    }
 
-    for (path, (before, after)) in diffs {
-        sync(path, before, after, args.apply)?;
+    for (path, (before, _)) in &mut files {
+        check(path, before)?;
+    }
+
+    files.retain(|_, (before, after)| match (before, after) {
+        (Some(before), Some(after)) => (before.sha1, before.mode) != (after.sha1, after.mode),
+        (None, None) => false,
+        _ => true,
+    });
+
+    for (path, (before, after)) in &files {
+        run(path, before.as_ref(), *after, args.apply)?;
     }
 
     if args.apply {
@@ -121,13 +135,13 @@ where
                     .ok_or_else(|| anyhow::format_err!("missing home_dir"))?
                     .join(&target);
             }
-            let mode = mode.unwrap_or(0o644);
             let sha1 = misc::sha1(&source)?;
+            let mode = mode.unwrap_or(0o100644);
             manifest.files.insert(
                 target,
                 manifest::File {
-                    mode,
                     sha1,
+                    mode,
                     pre_install,
                     post_install,
                     pre_remove,
@@ -154,27 +168,62 @@ where
         .collect()
 }
 
-type Diff<'a, T, U> = (Option<&'a manifest::File<T>>, Option<&'a manifest::File<U>>);
-fn plan<'a, T, U>(
-    before: &'a manifest::Manifest<T>,
-    after: &'a manifest::Manifest<U>,
-) -> BTreeMap<&'a PathBuf, Diff<'a, T, U>> {
-    let mut diffs = BTreeMap::<_, Diff<'_, _, _>>::new();
-    for (path, file) in &before.files {
-        diffs.entry(path).or_default().0 = Some(file);
+#[tracing::instrument(err, skip(file))]
+fn check<T>(path: &Path, file: &mut Option<manifest::File<T>>) -> anyhow::Result<()>
+where
+    T: Default,
+{
+    let actual = if path.try_exists()? {
+        Some((misc::sha1(path)?, fs::metadata(path)?.permissions().mode()))
+    } else {
+        None
+    };
+    let expected = file.as_ref().map(|file| (file.sha1, file.mode));
+
+    match (actual, expected) {
+        (Some(_), None) | (None, Some(_)) => {
+            tracing::warn!(
+                actual.exists = actual.is_some(),
+                expected.exists = expected.is_some(),
+            )
+        }
+        (Some((actual, _)), Some((expected, _))) if actual != expected => {
+            tracing::warn!(
+                actual.sha1 = hex::encode(actual),
+                expected.sha1 = hex::encode(expected),
+            )
+        }
+        (Some((_, actual)), Some((_, expected))) if actual != expected => {
+            tracing::warn!(
+                actual.mode = format!("{actual:o}"),
+                expected.mode = format!("{expected:o}"),
+            )
+        }
+        _ => (),
     }
-    for (path, file) in &after.files {
-        diffs.entry(path).or_default().1 = Some(file);
-    }
-    diffs.retain(|_, (before, after)| match (before, after) {
-        (Some(before), Some(after)) => (before.sha1, before.mode) != (after.sha1, after.mode),
-        (None, None) => false,
-        _ => true,
+
+    *file = actual.map(|(sha1, mode)| {
+        if let Some(mut file) = file.take() {
+            file.sha1 = sha1;
+            file.mode = mode;
+            file
+        } else {
+            manifest::File {
+                sha1,
+                mode,
+                pre_install: None,
+                post_install: None,
+                pre_remove: None,
+                post_remove: None,
+                extra: T::default(),
+            }
+        }
     });
-    diffs
+
+    Ok(())
 }
 
-fn sync<T, U>(
+fn run<T, U>(
     path: &Path,
     before: Option<&manifest::File<T>>,
     after: Option<&manifest::File<U>>,
@@ -191,23 +240,21 @@ where
     };
     let _enter = span.enter();
 
-    if let Some(before) = before {
-        let _span = tracing::info_span!("remove").entered();
-        if let Some(command) = &before.pre_remove {
+    if let Some(file) = before {
+        if let Some(command) = &file.pre_remove {
             exec(command, apply)?;
         }
         remove(&path, apply)?;
-        if let Some(command) = &before.post_remove {
+        if let Some(command) = &file.post_remove {
             exec(command, apply)?;
         }
     }
-    if let Some(after) = after {
-        let _span = tracing::info_span!("install").entered();
-        if let Some(command) = &after.pre_install {
+    if let Some(file) = after {
+        if let Some(command) = &file.pre_install {
             exec(command, apply)?;
         }
-        install(&after.extra, path, after.mode, apply)?;
-        if let Some(command) = &after.post_install {
+        install(&file.extra, path, file.mode, apply)?;
+        if let Some(command) = &file.post_install {
             exec(command, apply)?;
         }
     }

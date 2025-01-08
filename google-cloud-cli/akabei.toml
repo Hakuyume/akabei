@@ -3,11 +3,11 @@ name = "google-cloud-cli"
 [[files]]
   source = "google-cloud-cli"
   target = ".local/bin/gcloud"
-  mode = "755"
+  mode = "100755"
 [[files]]
   source = "google-cloud-cli"
   target = ".local/bin/docker-credential-gcloud"
-  mode = "755"
+  mode = "100755"
 [[files]]
   source = "google-cloud-cli-config.volume"
   target = ".config/containers/systemd/google-cloud-cli-config.volume"

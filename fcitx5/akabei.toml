@@ -17,6 +17,7 @@ name = "fcitx5"
 [[files]]
   source = "profile"
   target = ".config/fcitx5/profile"
+  mode = "100600"
 [[files]]
   source = "skk.conf"
   target = ".config/fcitx5/conf/skk.conf"
