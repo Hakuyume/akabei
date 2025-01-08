@@ -110,8 +110,11 @@ where
     }
 
     #[tracing::instrument(err)]
-    fn load(path: &Path) -> anyhow::Result<manifest::Manifest<PathBuf>> {
-        let package = toml::from_str::<Package>(&fs::read_to_string(path)?)?;
+    fn load<P>(path: P) -> anyhow::Result<manifest::Manifest<PathBuf>>
+    where
+        P: AsRef<Path> + fmt::Debug,
+    {
+        let package = toml::from_str::<Package>(&fs::read_to_string(&path)?)?;
         let mut manifest = manifest::Manifest::default();
         manifest.packages.insert(package.name);
         for File {
@@ -126,6 +129,7 @@ where
         {
             if source.is_relative() {
                 source = path
+                    .as_ref()
                     .parent()
                     .ok_or_else(|| anyhow::format_err!("missing parent"))?
                     .join(&source);
@@ -169,12 +173,16 @@ where
 }
 
 #[tracing::instrument(err, skip(file))]
-fn check<T>(path: &Path, file: &mut Option<manifest::File<T>>) -> anyhow::Result<()>
+fn check<P, T>(path: P, file: &mut Option<manifest::File<T>>) -> anyhow::Result<()>
 where
+    P: AsRef<Path> + fmt::Debug,
     T: Default,
 {
-    let actual = if path.try_exists()? {
-        Some((misc::sha1(path)?, fs::metadata(path)?.permissions().mode()))
+    let actual = if path.as_ref().try_exists()? {
+        Some((
+            misc::sha1(&path)?,
+            fs::metadata(&path)?.permissions().mode(),
+        ))
     } else {
         None
     };
@@ -223,14 +231,15 @@ where
     Ok(())
 }
 
-fn run<T, U>(
-    path: &Path,
+fn run<P, T, U>(
+    path: P,
     before: Option<&manifest::File<T>>,
     after: Option<&manifest::File<U>>,
     apply: bool,
 ) -> anyhow::Result<()>
 where
-    U: fmt::Debug + AsRef<Path>,
+    P: AsRef<Path> + fmt::Debug,
+    U: AsRef<Path> + fmt::Debug,
 {
     let span = match (before.is_some(), after.is_some()) {
         (true, true) => tracing::info_span!("upgrade", ?path),
@@ -289,7 +298,7 @@ where
 #[tracing::instrument(err, ret, skip(target, mode))]
 fn install<P, Q>(source: P, target: Q, mode: u32, apply: bool) -> anyhow::Result<()>
 where
-    P: fmt::Debug + AsRef<Path>,
+    P: AsRef<Path> + fmt::Debug,
     Q: AsRef<Path>,
 {
     if apply {
