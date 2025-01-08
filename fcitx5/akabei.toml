@@ -1,0 +1,22 @@
+name = "fcitx5"
+
+[[files]]
+  source = "50-fcitx5.bash"
+  target = ".bashrc.d/50-fcitx5.bash"
+[[files]]
+  source = "config"
+  target = ".config/fcitx5/config"
+[[files]]
+  source = "dictionary_list"
+  target = ".local/share/fcitx5/skk/dictionary_list"
+[[files]]
+  source = "fcitx5.service"
+  target = ".config/systemd/user/fcitx5.service"
+  post_install = "systemctl --user daemon-reload && systemctl --user enable fcitx5.service"
+  pre_remove = "systemctl --user disable fcitx5.service"
+[[files]]
+  source = "profile"
+  target = ".config/fcitx5/profile"
+[[files]]
+  source = "skk.conf"
+  target = ".config/fcitx5/conf/skk.conf"
