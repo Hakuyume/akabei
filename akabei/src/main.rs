@@ -179,6 +179,7 @@ where
     for (span, before, _) in diff {
         if let Some(before) = before {
             let _enter = span.enter();
+            let _span = tracing::info_span!("pre_remove").entered();
             for hook in &before.hooks.pre_remove {
                 misc::exec(&hook.command, apply)?;
             }
@@ -204,6 +205,7 @@ where
     for (span, before, _) in diff {
         if let Some(before) = before {
             let _enter = span.enter();
+            let _span = tracing::info_span!("post_remove").entered();
             for hook in &before.hooks.post_remove {
                 misc::exec(&hook.command, apply)?;
             }
@@ -214,6 +216,7 @@ where
     for (span, _, after) in diff {
         if let Some(after) = after {
             let _enter = span.enter();
+            let _span = tracing::info_span!("pre_install").entered();
             for hook in &after.hooks.pre_install {
                 misc::exec(&hook.command, apply)?;
             }
@@ -232,6 +235,7 @@ where
     for (span, _, after) in diff {
         if let Some(after) = after {
             let _enter = span.enter();
+            let _span = tracing::info_span!("post_install").entered();
             for hook in &after.hooks.post_install {
                 misc::exec(&hook.command, apply)?;
             }
