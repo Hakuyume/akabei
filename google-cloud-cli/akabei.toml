@@ -20,4 +20,6 @@ name = "google-cloud-cli"
 [[files]]
   source = "google-cloud-cli.container"
   target = ".config/containers/systemd/google-cloud-cli.container"
-  post_install = "systemctl --user daemon-reload"
+
+[[hooks.post_install]]
+  command = "systemctl --user daemon-reload"

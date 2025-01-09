@@ -12,8 +12,6 @@ name = "fcitx5"
 [[files]]
   source = "fcitx5.service"
   target = ".config/systemd/user/fcitx5.service"
-  post_install = "systemctl --user daemon-reload && systemctl --user enable fcitx5.service"
-  pre_remove = "systemctl --user disable fcitx5.service"
 [[files]]
   source = "profile"
   target = ".config/fcitx5/profile"
@@ -21,3 +19,8 @@ name = "fcitx5"
 [[files]]
   source = "skk.conf"
   target = ".config/fcitx5/conf/skk.conf"
+
+[[hooks.post_install]]
+  command = "systemctl --user daemon-reload && systemctl --user enable fcitx5.service"
+[[hooks.pre_remove]]
+  command = "systemctl --user disable fcitx5.service"

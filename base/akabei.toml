@@ -9,4 +9,6 @@ name = "base"
 [[files]]
   source = "user-dirs.dirs"
   target = ".config/user-dirs.dirs"
-  pre_install = "mkdir -p downloads"
+
+[[hooks.pre_install]]
+  command = "mkdir -p downloads"

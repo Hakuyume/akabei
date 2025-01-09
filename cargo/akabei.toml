@@ -1,0 +1,8 @@
+name = "cargo"
+
+[[files]]
+  source = "50-cargo.bash"
+  target = ".bashrc.d/50-cargo.bash"
+[[files]]
+  source = "config.toml"
+  target = ".cargo/config.toml"

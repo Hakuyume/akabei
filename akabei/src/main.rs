@@ -1,16 +1,15 @@
-mod manifest;
+mod load;
 mod misc;
+mod schema;
 
 use clap::Parser;
-use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fmt;
-use std::fs::Permissions;
 use std::fs::{self, File};
+use std::mem;
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::Path;
 
 #[derive(Parser)]
 struct Args {
@@ -27,297 +26,217 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let state = dirs::data_dir()
+    let data_path = dirs::data_dir()
         .ok_or_else(|| anyhow::format_err!("missing data_dir"))?
         .join(concat!(env!("CARGO_BIN_NAME"), ".json"));
 
-    let before = if state.try_exists()? {
-        serde_json::from_reader::<_, manifest::Manifest<()>>(File::open(&state)?)?
+    let mut before = if data_path.try_exists()? {
+        serde_json::from_reader(File::open(&data_path)?)?
     } else {
-        manifest::Manifest::default()
+        schema::State::<()>::default()
     };
 
     let after = {
-        let mut package_names = before.packages;
-        for package_name in args.install {
+        let mut package_names = before
+            .packages
+            .iter()
+            .map(|package| &package.name)
+            .collect::<BTreeSet<_>>();
+        for package_name in &args.install {
             package_names.insert(package_name);
         }
-        for package_name in args.remove {
-            package_names.remove(&package_name);
+        for package_name in &args.remove {
+            package_names.remove(package_name);
         }
+        tracing::info!("packages[].name" = ?package_names);
 
-        let mut files = BTreeMap::new();
-        let mut packages = load_packages(env::current_dir()?)?;
-        for package_name in &package_names {
-            let manifest = packages
-                .iter_mut()
-                .find(|manifest| manifest.packages.contains(package_name))
-                .ok_or_else(|| anyhow::format_err!("missing package `{package_name}`"))?;
-            files.append(&mut manifest.files);
-        }
-
-        manifest::Manifest {
-            packages: package_names,
-            files,
-        }
+        let mut packages = load::load_packages(env::current_dir()?)?;
+        let packages = package_names
+            .into_iter()
+            .map(|package_name| {
+                packages
+                    .remove(package_name)
+                    .ok_or_else(|| anyhow::format_err!("missing package `{package_name}`"))
+            })
+            .collect::<Result<_, _>>()?;
+        schema::State { packages }
     };
 
-    let mut files = {
-        let mut files = BTreeMap::<_, (_, _)>::new();
-        for (path, file) in before.files {
-            files.entry(path).or_default().0 = Some(file);
+    let mut orphan = after
+        .packages
+        .iter()
+        .flat_map(|package| package.files.keys())
+        .map(AsRef::as_ref)
+        .collect();
+    sync(&mut before, &mut orphan)?;
+
+    let diff = {
+        let mut packages = BTreeMap::<_, (_, _)>::new();
+        for package in &before.packages {
+            packages.entry(&package.name).or_default().0 = Some(package);
         }
-        for (path, file) in &after.files {
-            files.entry(path.clone()).or_default().1 = Some(file);
+        for package in &after.packages {
+            packages.entry(&package.name).or_default().1 = Some(package);
         }
-        files
+        packages
+            .into_iter()
+            .filter_map(|(package_name, (before, after))| match (before, after) {
+                (Some(before), Some(after)) => {
+                    let before_files = before
+                        .files
+                        .iter()
+                        .map(|(path, file)| (path, file.sha1, file.mode));
+                    let after_files = after
+                        .files
+                        .iter()
+                        .map(|(path, file)| (path, file.sha1, file.mode));
+                    if before_files.eq(after_files) {
+                        None
+                    } else {
+                        let span = tracing::info_span!("upgrade", package.name = package_name);
+                        Some((span, Some(before), Some(after)))
+                    }
+                }
+                (Some(before), None) => {
+                    let span = tracing::info_span!("remove", package.name = package_name);
+                    Some((span, Some(before), None))
+                }
+                (None, Some(after)) => {
+                    let span = tracing::info_span!("install", package.name = package_name);
+                    Some((span, None, Some(after)))
+                }
+                (None, None) => None,
+            })
+            .collect()
     };
 
-    for (path, (before, _)) in &mut files {
-        check(path, before)?;
-    }
-
-    files.retain(|_, (before, after)| match (before, after) {
-        (Some(before), Some(after)) => (before.sha1, before.mode) != (after.sha1, after.mode),
-        (None, None) => false,
-        _ => true,
-    });
-
-    for (path, (before, after)) in &files {
-        run(path, before.as_ref(), *after, args.apply)?;
-    }
+    action(&diff, &orphan, args.apply)?;
 
     if args.apply {
-        if let Some(parent) = state.parent() {
-            fs::create_dir_all(parent)?
-        }
-        fs::write(&state, serde_json::to_vec_pretty(&after)?)?;
+        fs::write(&data_path, serde_json::to_vec_pretty(&after)?)?;
     }
 
     Ok(())
 }
 
-fn load_packages<P>(root: P) -> anyhow::Result<Vec<manifest::Manifest<PathBuf>>>
-where
-    P: AsRef<Path>,
-{
-    #[derive(Deserialize)]
-    struct Package {
-        name: String,
-        files: Vec<File>,
+fn sync<T>(state: &mut schema::State<T>, orphan: &mut BTreeSet<&Path>) -> anyhow::Result<()> {
+    for package in &mut state.packages {
+        package.files = mem::take(&mut package.files)
+            .into_iter()
+            .filter_map(|(path, file)| {
+                Some(check(&path, file).transpose()?.map(|file| {
+                    orphan.remove(&*path);
+                    (path, file)
+                }))
+            })
+            .collect::<Result<_, _>>()?;
     }
-
-    #[serde_with::serde_as]
-    #[derive(Debug, Deserialize)]
-    pub struct File {
-        source: PathBuf,
-        target: PathBuf,
-        #[serde_as(as = "Option<misc::Octal>")]
-        mode: Option<u32>,
-        pre_install: Option<String>,
-        post_install: Option<String>,
-        pre_remove: Option<String>,
-        post_remove: Option<String>,
-    }
-
-    #[tracing::instrument(err)]
-    fn load<P>(path: P) -> anyhow::Result<manifest::Manifest<PathBuf>>
-    where
-        P: AsRef<Path> + fmt::Debug,
-    {
-        let package = toml::from_str::<Package>(&fs::read_to_string(&path)?)?;
-        let mut manifest = manifest::Manifest::default();
-        manifest.packages.insert(package.name);
-        for File {
-            mut source,
-            mut target,
-            mode,
-            pre_install,
-            post_install,
-            pre_remove,
-            post_remove,
-        } in package.files
-        {
-            if source.is_relative() {
-                source = path
-                    .as_ref()
-                    .parent()
-                    .ok_or_else(|| anyhow::format_err!("missing parent"))?
-                    .join(&source);
-            }
-            if target.is_relative() {
-                target = dirs::home_dir()
-                    .ok_or_else(|| anyhow::format_err!("missing home_dir"))?
-                    .join(&target);
-            }
-            let sha1 = misc::sha1(&source)?;
-            let mode = mode.unwrap_or(0o100644);
-            manifest.files.insert(
-                target,
-                manifest::File {
-                    sha1,
-                    mode,
-                    pre_install,
-                    post_install,
-                    pre_remove,
-                    post_remove,
-                    extra: source,
-                },
-            );
-        }
-        Ok(manifest)
-    }
-
-    walkdir::WalkDir::new(root)
-        .into_iter()
-        .filter_map(|entry| match entry {
-            Ok(entry) => {
-                if entry.file_name() == concat!(env!("CARGO_BIN_NAME"), ".toml") {
-                    Some(load(entry.path()))
-                } else {
-                    None
-                }
-            }
-            Err(e) => Some(Err(e.into())),
-        })
-        .collect()
+    Ok(())
 }
 
 #[tracing::instrument(err, skip(file))]
-fn check<P, T>(path: P, file: &mut Option<manifest::File<T>>) -> anyhow::Result<()>
+fn check<P, T>(path: P, mut file: schema::File<T>) -> anyhow::Result<Option<schema::File<T>>>
 where
     P: AsRef<Path> + fmt::Debug,
-    T: Default,
 {
-    let actual = if path.as_ref().try_exists()? {
-        Some((
-            misc::sha1(&path)?,
-            fs::metadata(&path)?.permissions().mode(),
-        ))
+    if path.as_ref().try_exists()? {
+        let sha1 = misc::sha1(&path)?;
+        let mode = fs::metadata(&path)?.permissions().mode();
+        if sha1 != file.sha1 {
+            tracing::warn!(
+                actual.sha1 = hex::encode(sha1),
+                expected.sha1 = hex::encode(file.sha1),
+            );
+        }
+        if mode != file.mode {
+            tracing::warn!(
+                actual.mode = format!("{mode:o}"),
+                expected.mode = format!("{:o}", file.mode),
+            );
+        }
+        file.sha1 = sha1;
+        file.mode = mode;
+        Ok(Some(file))
     } else {
-        None
-    };
-    let expected = file.as_ref().map(|file| (file.sha1, file.mode));
-
-    match (actual, expected) {
-        (Some(_), None) | (None, Some(_)) => {
-            tracing::warn!(
-                actual.exists = actual.is_some(),
-                expected.exists = expected.is_some(),
-            )
-        }
-        (Some((actual, _)), Some((expected, _))) if actual != expected => {
-            tracing::warn!(
-                actual.sha1 = hex::encode(actual),
-                expected.sha1 = hex::encode(expected),
-            )
-        }
-        (Some((_, actual)), Some((_, expected))) if actual != expected => {
-            tracing::warn!(
-                actual.mode = format!("{actual:o}"),
-                expected.mode = format!("{expected:o}"),
-            )
-        }
-        _ => (),
+        tracing::warn!(actual.exists = false, expected.exists = true);
+        Ok(None)
     }
-
-    *file = actual.map(|(sha1, mode)| {
-        if let Some(mut file) = file.take() {
-            file.sha1 = sha1;
-            file.mode = mode;
-            file
-        } else {
-            manifest::File {
-                sha1,
-                mode,
-                pre_install: None,
-                post_install: None,
-                pre_remove: None,
-                post_remove: None,
-                extra: T::default(),
-            }
-        }
-    });
-
-    Ok(())
 }
 
-fn run<P, T, U>(
-    path: P,
-    before: Option<&manifest::File<T>>,
-    after: Option<&manifest::File<U>>,
+fn action<T, U>(
+    diff: &Vec<(
+        tracing::Span,
+        Option<&schema::Package<T>>,
+        Option<&schema::Package<U>>,
+    )>,
+    orphan: &BTreeSet<&Path>,
     apply: bool,
 ) -> anyhow::Result<()>
 where
-    P: AsRef<Path> + fmt::Debug,
     U: AsRef<Path> + fmt::Debug,
 {
-    let span = match (before.is_some(), after.is_some()) {
-        (true, true) => tracing::info_span!("upgrade", ?path),
-        (true, false) => tracing::info_span!("remove", ?path),
-        (false, true) => tracing::info_span!("install", ?path),
-        _ => unreachable!(),
-    };
-    let _enter = span.enter();
-
-    if let Some(file) = before {
-        if let Some(command) = &file.pre_remove {
-            exec(command, apply)?;
-        }
-        remove(&path, apply)?;
-        if let Some(command) = &file.post_remove {
-            exec(command, apply)?;
+    // pre_remove
+    for (span, before, _) in diff {
+        if let Some(before) = before {
+            let _enter = span.enter();
+            for hook in &before.hooks.pre_remove {
+                misc::exec(&hook.command, apply)?;
+            }
         }
     }
-    if let Some(file) = after {
-        if let Some(command) = &file.pre_install {
-            exec(command, apply)?;
+    // remove
+    for (span, before, _) in diff {
+        if let Some(before) = before {
+            let _enter = span.enter();
+            for path in before.files.keys() {
+                misc::remove(path, apply)?;
+            }
         }
-        install(&file.extra, path, file.mode, apply)?;
-        if let Some(command) = &file.post_install {
-            exec(command, apply)?;
+    }
+    {
+        for path in orphan {
+            let _span = tracing::info_span!("remove", ?path).entered();
+            tracing::warn!("orphan");
+            misc::remove(path, apply)?;
+        }
+    }
+    // post_remove
+    for (span, before, _) in diff {
+        if let Some(before) = before {
+            let _enter = span.enter();
+            for hook in &before.hooks.post_remove {
+                misc::exec(&hook.command, apply)?;
+            }
         }
     }
 
-    Ok(())
-}
-
-#[tracing::instrument(err, ret)]
-fn exec(command: &str, apply: bool) -> anyhow::Result<()> {
-    if apply {
-        let status = Command::new("sh")
-            .arg("-euxc")
-            .arg(command)
-            .current_dir(dirs::home_dir().ok_or_else(|| anyhow::format_err!("missing home_dir"))?)
-            .status()?;
-        anyhow::ensure!(status.success());
-    }
-    Ok(())
-}
-
-#[tracing::instrument(err, ret, skip(path))]
-fn remove<P>(path: P, apply: bool) -> anyhow::Result<()>
-where
-    P: AsRef<Path>,
-{
-    if apply {
-        fs::remove_file(path)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(err, ret, skip(target, mode))]
-fn install<P, Q>(source: P, target: Q, mode: u32, apply: bool) -> anyhow::Result<()>
-where
-    P: AsRef<Path> + fmt::Debug,
-    Q: AsRef<Path>,
-{
-    if apply {
-        if let Some(parent) = target.as_ref().parent() {
-            fs::create_dir_all(parent)?;
+    // pre_install
+    for (span, _, after) in diff {
+        if let Some(after) = after {
+            let _enter = span.enter();
+            for hook in &after.hooks.pre_install {
+                misc::exec(&hook.command, apply)?;
+            }
         }
-        fs::copy(source, &target)?;
-        fs::set_permissions(&target, Permissions::from_mode(mode))?;
     }
+    // install
+    for (span, _, after) in diff {
+        if let Some(after) = after {
+            let _enter = span.enter();
+            for (path, file) in &after.files {
+                misc::install(&file.extra, path, file.mode, apply)?;
+            }
+        }
+    }
+    // post_install
+    for (span, _, after) in diff {
+        if let Some(after) = after {
+            let _enter = span.enter();
+            for hook in &after.hooks.post_install {
+                misc::exec(&hook.command, apply)?;
+            }
+        }
+    }
+
     Ok(())
 }
