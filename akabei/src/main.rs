@@ -124,13 +124,19 @@ fn sync<T>(state: &mut schema::State<T>, orphan: &mut BTreeSet<&Path>) -> anyhow
         package.files = mem::take(&mut package.files)
             .into_iter()
             .filter_map(|(path, file)| {
-                Some(check(&path, file).transpose()?.map(|file| {
-                    orphan.remove(&*path);
-                    (path, file)
-                }))
+                orphan.remove(&*path);
+                Some(check(&path, file).transpose()?.map(|file| (path, file)))
             })
             .collect::<Result<_, _>>()?;
     }
+    *orphan = mem::take(orphan)
+        .into_iter()
+        .filter_map(|path| {
+            path.try_exists()
+                .map(|exists| exists.then_some(path))
+                .transpose()
+        })
+        .collect::<Result<_, _>>()?;
     Ok(())
 }
 
