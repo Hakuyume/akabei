@@ -158,7 +158,7 @@ where
         file.mode = mode;
         Ok(Some(file))
     } else {
-        tracing::warn!(actual.exists = false, expected.exists = true);
+        tracing::warn!("missing");
         Ok(None)
     }
 }
