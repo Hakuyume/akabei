@@ -1,4 +1,4 @@
-Include conf.d/*.conf
+Include config.d/*.conf
 
 Host *
   ControlMaster auto
