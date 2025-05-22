@@ -12,14 +12,17 @@ name = "google-cloud-cli"
   target = ".local/bin/docker-credential-gcloud"
   mode = "100755"
 [[files]]
+  source = "google-cloud-cli.container"
+  target = ".config/containers/systemd/google-cloud-cli.container"
+[[files]]
   source = "google-cloud-cli-config.volume"
   target = ".config/containers/systemd/google-cloud-cli-config.volume"
 [[files]]
   source = "google-cloud-cli-kube.volume"
   target = ".config/containers/systemd/google-cloud-cli-kube.volume"
 [[files]]
-  source = "google-cloud-cli.container"
-  target = ".config/containers/systemd/google-cloud-cli.container"
+  source = "google-cloud-cli-ssh.volume"
+  target = ".config/containers/systemd/google-cloud-cli-ssh.volume"
 
 [[hooks.post_install]]
   command = "systemctl --user daemon-reload"

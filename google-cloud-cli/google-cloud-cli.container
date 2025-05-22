@@ -4,6 +4,7 @@ AutoUpdate=registry
 Exec=sleep infinity
 Mount=type=volume,source=google-cloud-cli-config.volume,target=/root/.config
 Mount=type=volume,source=google-cloud-cli-kube.volume,target=/root/.kube
+Mount=type=volume,source=google-cloud-cli-ssh.volume,target=/root/.ssh
 
 [Quadlet]
 DefaultDependencies=false
