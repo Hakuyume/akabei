@@ -169,12 +169,14 @@ where
     }
 }
 
+type Diff<'a, T, P, C> = (
+    tracing::Span,
+    Option<&'a schema::Package<T>>,
+    Option<&'a schema::Package<(P, C)>>,
+);
+
 fn action<T, P, C>(
-    diff: &Vec<(
-        tracing::Span,
-        Option<&schema::Package<T>>,
-        Option<&schema::Package<(P, C)>>,
-    )>,
+    diff: &Vec<Diff<'_, T, P, C>>,
     orphan: &BTreeSet<&Path>,
     apply: bool,
 ) -> anyhow::Result<()>
