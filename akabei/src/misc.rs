@@ -42,7 +42,7 @@ where
         if let Some(parent) = target.as_ref().parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(source, content)?;
+        fs::write(&target, content)?;
         fs::set_permissions(&target, Permissions::from_mode(mode))?;
     }
     Ok(())
