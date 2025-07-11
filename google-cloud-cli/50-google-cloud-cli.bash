@@ -1,1 +1,1 @@
-[[ -v GOOGLE_APPLICATION_CREDENTIALS ]] || export GOOGLE_APPLICATION_CREDENTIALS="$(podman volume inspect --format='{{.Mountpoint}}' systemd-google-cloud-cli-config)/gcloud/application_default_credentials.json"
+[[ -v GOOGLE_APPLICATION_CREDENTIALS ]] || export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
