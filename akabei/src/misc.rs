@@ -31,17 +31,18 @@ where
     Ok(())
 }
 
-#[tracing::instrument(err, fields(mode = format!("{mode:o}")), ret)]
-pub fn install<P, Q>(source: P, target: Q, mode: u32, apply: bool) -> io::Result<()>
+#[tracing::instrument(err, fields(mode = format!("{mode:o}")), ret, skip(content))]
+pub fn install<P, Q, C>(source: P, target: Q, content: C, mode: u32, apply: bool) -> io::Result<()>
 where
     P: AsRef<Path> + fmt::Debug,
     Q: AsRef<Path> + fmt::Debug,
+    C: AsRef<[u8]>,
 {
     if apply {
         if let Some(parent) = target.as_ref().parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::copy(source, &target)?;
+        fs::write(source, content)?;
         fs::set_permissions(&target, Permissions::from_mode(mode))?;
     }
     Ok(())

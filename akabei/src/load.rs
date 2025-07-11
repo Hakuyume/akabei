@@ -1,5 +1,6 @@
 use crate::{misc, schema};
 use serde::Deserialize;
+use sha1::{Digest, Sha1};
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
@@ -21,9 +22,13 @@ struct File {
     target: PathBuf,
     #[serde_as(as = "Option<misc::Octal>")]
     mode: Option<u32>,
+    #[serde(default)]
+    template: bool,
 }
 
-pub fn load_packages<P>(root: P) -> anyhow::Result<BTreeMap<String, schema::Package<PathBuf>>>
+pub fn load_packages<P>(
+    root: P,
+) -> anyhow::Result<BTreeMap<String, schema::Package<(PathBuf, Vec<u8>)>>>
 where
     P: AsRef<Path>,
 {
@@ -43,7 +48,7 @@ where
 }
 
 #[tracing::instrument(err)]
-fn load_package<P>(path: P) -> anyhow::Result<schema::Package<PathBuf>>
+fn load_package<P>(path: P) -> anyhow::Result<schema::Package<(PathBuf, Vec<u8>)>>
 where
     P: AsRef<Path> + fmt::Debug,
 {
@@ -65,8 +70,9 @@ fn load_file<P>(
         mut source,
         mut target,
         mode,
+        template,
     }: File,
-) -> anyhow::Result<(PathBuf, schema::File<PathBuf>)>
+) -> anyhow::Result<(PathBuf, schema::File<(PathBuf, Vec<u8>)>)>
 where
     P: AsRef<Path> + fmt::Debug,
 {
@@ -82,14 +88,22 @@ where
             .ok_or_else(|| anyhow::format_err!("missing home_dir"))?
             .join(&target);
     }
-    let sha1 = misc::sha1(&source)?;
+    let content = fs::read(&source)?;
+    let content = if template {
+        let mut context = tera::Context::new();
+        context.insert("uid", &nix::unistd::getuid().as_raw());
+        tera::Tera::one_off(&String::from_utf8(content)?, &context, false)?.into_bytes()
+    } else {
+        content
+    };
+    let sha1 = Sha1::digest(&content).into();
     let mode = mode.unwrap_or(0o100644);
     Ok((
         target,
         schema::File {
             sha1,
             mode,
-            extra: source,
+            extra: (source, content),
         },
     ))
 }

@@ -6,3 +6,4 @@ name = "cargo"
 [[files]]
   source = "config.toml"
   target = ".cargo/config.toml"
+  template = true

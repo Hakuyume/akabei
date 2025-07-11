@@ -1,2 +1,2 @@
 [build]
-target-dir = "/tmp/cargo-1000/target"
+target-dir = "/scratch/cargo-{{ uid }}/target"

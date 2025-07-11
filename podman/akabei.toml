@@ -9,3 +9,4 @@ name = "podman"
 [[files]]
   source = "storage.conf"
   target = ".config/containers/storage.conf"
+  template = true

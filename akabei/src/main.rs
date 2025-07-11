@@ -169,17 +169,18 @@ where
     }
 }
 
-fn action<T, U>(
+fn action<T, P, C>(
     diff: &Vec<(
         tracing::Span,
         Option<&schema::Package<T>>,
-        Option<&schema::Package<U>>,
+        Option<&schema::Package<(P, C)>>,
     )>,
     orphan: &BTreeSet<&Path>,
     apply: bool,
 ) -> anyhow::Result<()>
 where
-    U: AsRef<Path> + fmt::Debug,
+    P: AsRef<Path> + fmt::Debug,
+    C: AsRef<[u8]>,
 {
     // pre_remove
     for (span, before, _) in diff {
@@ -233,7 +234,7 @@ where
         if let Some(after) = after {
             let _enter = span.enter();
             for (path, file) in &after.files {
-                misc::install(&file.extra, path, file.mode, apply)?;
+                misc::install(&file.extra.0, path, &file.extra.1, file.mode, apply)?;
             }
         }
     }
