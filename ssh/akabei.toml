@@ -6,3 +6,4 @@ name = "ssh"
 [[files]]
   source = "config"
   target = ".ssh/config"
+  template = true

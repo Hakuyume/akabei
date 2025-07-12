@@ -91,6 +91,7 @@ where
     let content = fs::read(&source)?;
     let content = if template {
         let mut context = tera::Context::new();
+        context.insert("env", &env::vars().collect::<BTreeMap<_, _>>());
         context.insert("uid", &nix::unistd::getuid().as_raw());
         tera::Tera::one_off(&String::from_utf8(content)?, &context, false)?.into_bytes()
     } else {
