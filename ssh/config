@@ -3,6 +3,6 @@ Include config.d/*.conf
 
 Host *
   ControlMaster auto
-  ControlPath {{ env.XDG_RUNTIME_DIR }}/ssh/%C
+  ControlPath {{ env.XDG_RUNTIME_DIR }}/ssh-%C
   ControlPersist 30
   ServerAliveInterval 5
