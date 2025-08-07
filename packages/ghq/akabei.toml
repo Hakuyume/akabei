@@ -1,0 +1,5 @@
+name = "ghq"
+
+[[files]]
+  source = "ghq.bash"
+  target = ".bashrc.d/50-ghq.bash"

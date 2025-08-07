@@ -4,9 +4,6 @@ name = "base"
   source = "bashrc.bash"
   target = ".bashrc"
 [[files]]
-  source = "starship.bash"
-  target = ".bashrc.d/50-starship.bash"
-[[files]]
   source = "user-dirs.dirs"
   target = ".config/user-dirs.dirs"
 
