@@ -1,5 +1,8 @@
 name = "atuin"
 
+# atuin
+# bash-preexec
+
 [[files]]
   source = "atuin.bash"
   # https://github.com/atuinsh/atuin/issues/2738#issuecomment-2876082481

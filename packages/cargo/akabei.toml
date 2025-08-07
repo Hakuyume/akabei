@@ -1,5 +1,7 @@
 name = "cargo"
 
+# rustup
+
 [[files]]
   source = "cargo.bash"
   target = ".bashrc.d/50-cargo.bash"

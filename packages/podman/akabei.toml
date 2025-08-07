@@ -1,5 +1,7 @@
 name = "podman"
 
+# podman
+
 [[files]]
   source = "podman.bash"
   target = ".bashrc.d/50-podman.bash"

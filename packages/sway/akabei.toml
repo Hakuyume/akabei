@@ -1,5 +1,19 @@
 name = "sway"
 
+# foot
+# fuzzel
+# i3status-rust
+# noto-fonts
+# noto-fonts-cjk
+# noto-fonts-emoji
+# otf-font-awesome
+# sway
+# swaybg
+# swayidle
+# swaylock
+# ttf-iosevka-nerd
+# xorg-xwayland
+
 [[files]]
   source = "sway.bash"
   target = ".bashrc.d/50-sway.bash"

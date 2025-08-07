@@ -1,5 +1,7 @@
 name = "base"
 
+# xdg-user-dirs
+
 [[files]]
   source = "bashrc.bash"
   target = ".bashrc"

@@ -1,5 +1,9 @@
 name = "fcitx5"
 
+# fcitx5-gtk
+# fcitx5-qt
+# fcitx5-skk
+
 [[files]]
   source = "fcitx5.bash"
   target = ".bashrc.d/50-fcitx5.bash"

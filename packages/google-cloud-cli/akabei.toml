@@ -1,5 +1,7 @@
 name = "google-cloud-cli"
 
+# podman
+
 [[files]]
   source = "google-cloud-cli.bash"
   target = ".bashrc.d/50-google-cloud-cli.bash"
