@@ -1,7 +1,7 @@
 name = "sway"
 
 [[files]]
-  source = "50-sway.bash"
+  source = "sway.bash"
   target = ".bashrc.d/50-sway.bash"
 [[files]]
   source = "foot.ini"

@@ -1,7 +1,7 @@
 name = "podman"
 
 [[files]]
-  source = "50-podman.bash"
+  source = "podman.bash"
   target = ".bashrc.d/50-podman.bash"
 [[files]]
   source = "containers.conf"

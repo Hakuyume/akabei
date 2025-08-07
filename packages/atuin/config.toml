@@ -1,0 +1,6 @@
+enter_accept = true
+search_mode = "skim"
+
+[keys]
+scroll_exits = false
+prefix = "q"

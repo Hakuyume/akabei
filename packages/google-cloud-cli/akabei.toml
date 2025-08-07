@@ -1,7 +1,7 @@
 name = "google-cloud-cli"
 
 [[files]]
-  source = "50-google-cloud-cli.bash"
+  source = "google-cloud-cli.bash"
   target = ".bashrc.d/50-google-cloud-cli.bash"
 [[files]]
   source = "google-cloud-cli"

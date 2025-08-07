@@ -1,7 +1,7 @@
 name = "fcitx5"
 
 [[files]]
-  source = "50-fcitx5.bash"
+  source = "fcitx5.bash"
   target = ".bashrc.d/50-fcitx5.bash"
 [[files]]
   source = "config"

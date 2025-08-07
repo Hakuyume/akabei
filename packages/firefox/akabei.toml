@@ -1,5 +1,5 @@
 name = "firefox"
 
 [[files]]
-  source = "50-firefox.bash"
+  source = "firefox.bash"
   target = ".bashrc.d/50-firefox.bash"

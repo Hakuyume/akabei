@@ -1,7 +1,7 @@
 name = "cargo"
 
 [[files]]
-  source = "50-cargo.bash"
+  source = "cargo.bash"
   target = ".bashrc.d/50-cargo.bash"
 [[files]]
   source = "config.toml"

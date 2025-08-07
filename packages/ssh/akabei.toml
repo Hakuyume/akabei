@@ -1,7 +1,7 @@
 name = "ssh"
 
 [[files]]
-  source = "50-ssh-agent.bash"
+  source = "ssh-agent.bash"
   target = ".bashrc.d/50-ssh-agent.bash"
 [[files]]
   source = "config"
