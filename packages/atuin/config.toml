@@ -1,6 +1,10 @@
-enter_accept = true
 search_mode = "skim"
+workspaces = true
+enter_accept = true
 
 [keys]
 scroll_exits = false
 prefix = "q"
+
+[search]
+filters = ["workspace", "directory", "global"]
