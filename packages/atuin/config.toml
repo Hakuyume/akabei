@@ -7,4 +7,4 @@ scroll_exits = false
 prefix = "q"
 
 [search]
-filters = ["workspace", "directory", "global"]
+filters = ["workspace", "global"]
