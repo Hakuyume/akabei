@@ -2,7 +2,7 @@
 Image=gcr.io/google.com/cloudsdktool/google-cloud-cli:latest
 AutoUpdate=registry
 Exec=sleep infinity
-Mount=type=bind,source=%E/gcloud,target=/root/.config
+Mount=type=bind,source=%E/gcloud,target=/root/.config/gcloud
 
 [Quadlet]
 DefaultDependencies=false
