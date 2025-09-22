@@ -1,0 +1,8 @@
+name = "paru"
+
+# paru
+
+[[files]]
+  source = "paru.conf"
+  target = ".config/paru/paru.conf"
+  template = true

@@ -1,0 +1,1 @@
+cache-dir = "/scratch/uv-{{ uid }}"
