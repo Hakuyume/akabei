@@ -10,6 +10,7 @@ pub fn packages() -> BTreeMap<&'static str, fn(&mut Package) -> anyhow::Result<(
         ("atuin", atuin as _),
         ("base", base as _),
         ("cargo", cargo as _),
+        ("emacs", emacs as _),
         ("fcitx5", fcitx5 as _),
         ("firefox", firefox as _),
         ("ghq", ghq as _),
@@ -17,6 +18,7 @@ pub fn packages() -> BTreeMap<&'static str, fn(&mut Package) -> anyhow::Result<(
         ("npm", npm as _),
         ("paru", paru as _),
         ("podman", podman as _),
+        ("slack", slack as _),
         ("ssh", ssh as _),
         ("starship", starship as _),
         ("sway", sway as _),
@@ -92,6 +94,25 @@ fn cargo(package: &mut Package) -> anyhow::Result<()> {
         template!("packages/cargo/config.toml")?,
         None,
     )?;
+    Ok(())
+}
+
+// emacs
+fn emacs(package: &mut Package) -> anyhow::Result<()> {
+    let mut desktop = ini::Ini::load_from_file("/usr/share/applications/emacs.desktop")?;
+    for (_, properties) in &mut desktop {
+        for (k, v) in properties {
+            if k == "Exec" {
+                v.insert_str(
+                    0,
+                    "/usr/bin/systemd-run --user --quiet --scope --slice=emacs.slice ",
+                );
+            }
+        }
+    }
+    let mut s = Vec::new();
+    desktop.write_to(&mut s)?;
+    package.file(".local/share/applications/emacs.desktop", s, None)?;
     Ok(())
 }
 
@@ -230,6 +251,25 @@ fn podman(package: &mut Package) -> anyhow::Result<()> {
         template!("packages/podman/storage.conf")?,
         None,
     )?;
+    Ok(())
+}
+
+// slack
+fn slack(package: &mut Package) -> anyhow::Result<()> {
+    let mut desktop = ini::Ini::load_from_file("/usr/share/applications/slack.desktop")?;
+    for (_, properties) in &mut desktop {
+        for (k, v) in properties {
+            if k == "Exec" {
+                v.insert_str(
+                    0,
+                    "/usr/bin/systemd-run --user --quiet --scope --slice=slack.slice ",
+                );
+            }
+        }
+    }
+    let mut s = Vec::new();
+    desktop.write_to(&mut s)?;
+    package.file(".local/share/applications/slack.desktop", s, None)?;
     Ok(())
 }
 
