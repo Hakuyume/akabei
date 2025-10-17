@@ -26,9 +26,7 @@ struct File {
     template: bool,
 }
 
-type Source = (PathBuf, Vec<u8>);
-
-pub fn load_packages<P>(root: P) -> anyhow::Result<BTreeMap<String, schema::Package<Source>>>
+pub fn load_packages<P>(root: P) -> anyhow::Result<BTreeMap<String, schema::Package<Vec<u8>>>>
 where
     P: AsRef<Path>,
 {
@@ -48,7 +46,7 @@ where
 }
 
 #[tracing::instrument(err)]
-fn load_package<P>(path: P) -> anyhow::Result<schema::Package<Source>>
+fn load_package<P>(path: P) -> anyhow::Result<schema::Package<Vec<u8>>>
 where
     P: AsRef<Path> + fmt::Debug,
 {
@@ -72,7 +70,7 @@ fn load_file<P>(
         mode,
         template,
     }: File,
-) -> anyhow::Result<(PathBuf, schema::File<Source>)>
+) -> anyhow::Result<(PathBuf, schema::File<Vec<u8>>)>
 where
     P: AsRef<Path> + fmt::Debug,
 {
@@ -104,7 +102,7 @@ where
         schema::File {
             sha1,
             mode,
-            extra: (source, content),
+            extra: content,
         },
     ))
 }

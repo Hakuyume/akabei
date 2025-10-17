@@ -169,19 +169,18 @@ where
     }
 }
 
-type Diff<'a, T, P, C> = (
+type Diff<'a, T, C> = (
     tracing::Span,
     Option<&'a schema::Package<T>>,
-    Option<&'a schema::Package<(P, C)>>,
+    Option<&'a schema::Package<C>>,
 );
 
-fn action<T, P, C>(
-    diff: &Vec<Diff<'_, T, P, C>>,
+fn action<T, C>(
+    diff: &Vec<Diff<'_, T, C>>,
     orphan: &BTreeSet<&Path>,
     apply: bool,
 ) -> anyhow::Result<()>
 where
-    P: AsRef<Path> + fmt::Debug,
     C: AsRef<[u8]>,
 {
     // pre_remove
@@ -236,7 +235,7 @@ where
         if let Some(after) = after {
             let _enter = span.enter();
             for (path, file) in &after.files {
-                misc::install(&file.extra.0, path, &file.extra.1, file.mode, apply)?;
+                misc::install(path, &file.extra, file.mode, apply)?;
             }
         }
     }
