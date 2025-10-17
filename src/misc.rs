@@ -1,4 +1,5 @@
 use sha1::{Digest, Sha1};
+use std::ffi::OsStr;
 use std::fmt;
 use std::fs::{self, File, Permissions};
 use std::io;
@@ -48,11 +49,15 @@ where
 }
 
 #[tracing::instrument(err, ret)]
-pub fn exec(command: &str, apply: bool) -> anyhow::Result<()> {
-    if apply {
-        let status = Command::new("sh")
-            .arg("-euxc")
-            .arg(command)
+pub fn exec<I>(command: I, apply: bool) -> anyhow::Result<()>
+where
+    I: IntoIterator + fmt::Debug,
+    I::Item: AsRef<OsStr>,
+{
+    let mut command = command.into_iter();
+    if apply && let Some(program) = command.next() {
+        let status = Command::new(program)
+            .args(command)
             .current_dir(dirs::home_dir().ok_or_else(|| anyhow::format_err!("missing home_dir"))?)
             .status()?;
         anyhow::ensure!(status.success());

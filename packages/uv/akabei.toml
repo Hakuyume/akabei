@@ -1,8 +1,0 @@
-name = "uv"
-
-# uv
-
-[[files]]
-  source = "uv.toml"
-  target = ".config/uv/uv.toml"
-  template = true

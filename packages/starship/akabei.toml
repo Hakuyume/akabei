@@ -1,7 +1,0 @@
-name = "starship"
-
-# starship
-
-[[files]]
-  source = "starship.bash"
-  target = ".bashrc.d/50-starship.bash"

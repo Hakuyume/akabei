@@ -1,8 +1,0 @@
-name = "npm"
-
-# npm
-
-[[files]]
-  source = "npmrc"
-  target = ".npmrc"
-  template = true

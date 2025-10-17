@@ -1,5 +1,5 @@
-mod load;
 mod misc;
+mod packages;
 mod schema;
 
 use clap::Parser;
@@ -50,13 +50,19 @@ fn main() -> anyhow::Result<()> {
         }
         tracing::info!("packages[].name" = ?package_names);
 
-        let mut packages = load::load_packages(env::current_dir()?)?;
+        let mut packages = packages::packages();
         let packages = package_names
             .into_iter()
             .map(|package_name| {
-                packages
-                    .remove(package_name)
-                    .ok_or_else(|| anyhow::format_err!("missing package `{package_name}`"))
+                let load = packages
+                    .remove(package_name.as_str())
+                    .ok_or_else(|| anyhow::format_err!("missing package `{package_name}`"))?;
+                let mut package = schema::Package {
+                    name: package_name.clone(),
+                    files: BTreeMap::new(),
+                    hooks: schema::Hooks::default(),
+                };
+                load(&mut package).map(|_| package)
             })
             .collect::<Result<_, _>>()?;
         schema::State { packages }

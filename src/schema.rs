@@ -1,6 +1,7 @@
 use crate::misc;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use std::collections::BTreeMap;
+use std::fmt;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -44,5 +45,37 @@ pub struct Hooks {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Hook {
-    pub command: String,
+    #[serde(deserialize_with = "deserialize_command")]
+    pub command: Vec<String>,
+}
+
+fn deserialize_command<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Visitor;
+
+    impl<'de> de::Visitor<'de> for Visitor {
+        type Value = Vec<String>;
+
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("a sequence")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(["sh", "-euxc", value].into_iter().map(Into::into).collect())
+        }
+
+        fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::SeqAccess<'de>,
+        {
+            Deserialize::deserialize(de::value::SeqAccessDeserializer::new(seq))
+        }
+    }
+
+    deserializer.deserialize_any(Visitor)
 }
